@@ -13,6 +13,7 @@
             align-items: center;
             min-height: 100vh;
             overflow: hidden;
+            background-color: #f0f0f0;
         }
 
         body::before {
@@ -24,7 +25,7 @@
             height: 200%;
             background-size: cover;
             background-position: center;
-            opacity: 0.2;
+            opacity: 0.3;
             z-index: -1;
             transform: rotate(0deg);
             animation: rotateBackground 60s linear infinite;
@@ -40,29 +41,30 @@
         }
 
         .audio-player {
-            background-color: #fff;
-            border-radius: 15px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
             padding: 30px;
             width: 350px;
             text-align: center;
             position: relative;
             z-index: 1;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .album-cover-container {
-            width: 150px;
-            height: 150px;
+            width: 180px;
+            height: 180px;
             border-radius: 50%;
             overflow: hidden;
-            margin: 0 auto 20px;
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+            margin: 0 auto 25px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease-in-out;
-            position: relative;
         }
 
         .album-cover-container:hover {
-            transform: scale(1.05);
+            transform: scale(1.04);
         }
 
         .album-cover {
@@ -71,7 +73,8 @@
             display: block;
             object-fit: cover;
             border-radius: 50%;
-            animation: rotate 10s linear infinite paused;
+            animation: rotate 12s linear infinite paused;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
         .audio-player.playing .album-cover {
@@ -91,29 +94,55 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-top: 10px;
+            margin-top: 20px;
         }
 
         button {
             background: none;
             border: none;
-            padding: 10px;
-            margin: 0 10px;
+            padding: 15px;
+            margin: 0 15px;
             cursor: pointer;
             outline: none;
-            transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+            transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
 
         button:hover {
             transform: scale(1.1);
-            opacity: 0.8;
+            opacity: 0.9;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        button:active{
+           transform: scale(0.9);
+           box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
         button svg {
-            width: 24px;
-            height: 24px;
+            width: 30px;
+            height: 30px;
             display: block;
+            color: #333;
         }
+
+        #play-pause-button {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            padding: 18px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            transition: background-color 0.3s ease;
+        }
+
+        #play-pause-button:hover {
+            background-color: rgba(255, 255, 255, 1);
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+         #play-pause-button:active {
+             transform: scale(0.9);
+             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+         }
 
         input[type="range"] {
             display: none;
@@ -121,8 +150,8 @@
 
         .equalizer {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            top: 15px;
+            left: 15px;
             opacity: 0;
             transition: opacity 0.3s ease-in-out;
         }
@@ -135,10 +164,11 @@
         .bar {
             display: inline-block;
             background-color: #333;
-            width: 4px;
-            height: 12px;
-            margin-right: 3px;
+            width: 5px;
+            height: 15px;
+            margin-right: 4px;
             animation: equalizer-animation 0.4s infinite alternate;
+            border-radius: 4px;
         }
 
         .bar:nth-child(2) {
@@ -174,8 +204,8 @@
         <div class="controls">
             <button id="play-pause-button">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path id="play-icon" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v14zm10-8l-6 4V7l6 4z"/>
-                    <path id="pause-icon" d="M8 19h3V5H8v14zm5-14v14h3V5h-3z" style="display: none;"/>
+                    <path id="play-icon" d="M7 5v14l10-7z"/>
+                    <path id="pause-icon" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" style="display: none;"/>
                 </svg>
             </button>
         </div>
@@ -203,7 +233,14 @@
             const imageData = context.getImageData(0, 0, imageElement.width, imageElement.height).data;
             const averageColor = getAverageColor(imageData, imageElement.width, imageElement.height);
 
-            document.body.style.background = `linear-gradient(to top, ${averageColor} 0%, #f0f0f0 70%)`;
+             const colorLightness = getLightness(averageColor);
+             let gradientEndColor = colorLightness > 70 ? '#f0f0f0' : '#222';
+             if (colorLightness < 10) {
+                gradientEndColor = '#f0f0f0';
+             }
+
+            document.body.style.background = `linear-gradient(to top, ${averageColor} 10%, ${gradientEndColor} 85%)`;
+            body.style.backgroundColor = averageColor;
         }
 
         function getAverageColor(data, width, height) {
@@ -215,6 +252,16 @@
             }
             const count = width * height;
             return `rgb(${Math.round(r / count)}, ${Math.round(g / count)}, ${Math.round(b / count)})`;
+        }
+
+        function getLightness(color) {
+            const rgb = color.replace(/rgb\(|\)/g, '').split(',');
+            const r = parseInt(rgb[0]);
+            const g = parseInt(rgb[1]);
+            const b = parseInt(rgb[2]);
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            return (max + min) / 2;
         }
 
         albumImage.onload = () => {
