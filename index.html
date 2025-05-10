@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>nyachan</title>
+    <title>Meow</title>
     <style>
         body {
             font-family: sans-serif;
@@ -174,7 +174,7 @@
             <div class="bar"></div>
         </div>
         <div class="album-cover-container">
-            <img id="album-image" class="album-cover" src="" alt="앨범 커버">
+            <img id="album-image" class="album-cover" src="" alt="Album Cover">
         </div>
         <div class="controls">
             <button id="play-pause-button">
@@ -194,6 +194,7 @@
         const albumImage = document.getElementById('album-image');
         const audioPlayer = document.querySelector('.audio-player');
         const body = document.body;
+        const albumCoverContainer = document.querySelector('.album-cover-container');
 
         let isPlaying = false;
 
@@ -258,7 +259,7 @@
                     reader.readAsArrayBuffer(blob);
                 })
                 .catch(error => {
-                    console.error(error);
+                    console.error("Error loading album cover:", error);
                     albumImage.src = 'default_album.png';
                     updateBackgroundGradient('default_album.png');
                     body.style.backgroundImage = 'none';
@@ -284,7 +285,6 @@
             img.src = imageUrl;
         }
 
-
         audio.addEventListener('loadedmetadata', () => {
             getAlbumCover();
         });
@@ -295,7 +295,7 @@
                 playIcon.style.display = 'block';
                 pauseIcon.style.display = 'none';
                 audioPlayer.classList.remove('playing');
-                albumCoverContainer.classList.remove('playing'); 
+                albumCoverContainer.classList.remove('playing');
             } else {
                 audio.play();
                 playIcon.style.display = 'none';
