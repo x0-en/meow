@@ -3,109 +3,424 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>a</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+    <title>냐짱 오디오 플레이어</title>
     <style>
         body {
+            font-family: sans-serif;
+            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            background: linear-gradient(135deg, #ff758c, #ff7eb3);
-            transition: background 1s ease-in-out;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            transition: background 0.5s ease;
+            overflow: hidden; /* 배경 이미지가 body를 넘치지 않도록 설정 */
         }
-        .player {
-            width: 350px;
-            padding: 20px;
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 200%;
+            height: 200%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.2; /* 배경 이미지 투명도 설정 */
+            z-index: -1;
+            transform: rotate(0deg);
+            animation: rotateBackground 60s linear infinite; /* 매우 느린 속도로 회전 */
+        }
+
+        @keyframes rotateBackground {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .audio-player {
+            background-color: #fff;
             border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 350px;
             text-align: center;
-            transition: transform 0.3s;
+            position: relative;
+            z-index: 1; /* 오디오 플레이어가 배경 이미지 위에 오도록 설정 */
         }
-        .player:hover {
+
+        .album-cover-container {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin: 0 auto 20px;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease-in-out;
+            position: relative;
+        }
+
+        .album-cover-container:hover {
             transform: scale(1.05);
         }
-        .cover img {
+
+        .album-cover {
             width: 100%;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            height: 100%;
+            display: block;
+            object-fit: cover;
+            border-radius: 50%;
+            animation: rotate 10s linear infinite; /* 회전 애니메이션 항상 실행 */
         }
+
+        .audio-player.playing .album-cover {
+            animation-play-state: running;
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         .controls {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin-top: 15px;
+            justify-content: center;
+            margin-top: 10px; /* 컨트롤러와 앨범 커버 간 간격 추가 */
         }
+
         button {
-            font-size: 20px;
-            cursor: pointer;
-            padding: 10px;
+            background: none;
             border: none;
-            background: #ff758c;
-            color: white;
-            border-radius: 10px;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background: #ff7eb3;
-        }
-        input[type="range"] {
-            flex-grow: 1;
+            padding: 10px;
             margin: 0 10px;
+            cursor: pointer;
+            outline: none;
+            transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+        }
+
+        button:hover {
+            transform: scale(1.1);
+            opacity: 0.8;
+        }
+
+        button svg {
+            width: 24px;
+            height: 24px;
+            display: block;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #ddd;
+            border-radius: 5px;
+            height: 8px; /* 슬라이더 높이 증가 */
+            cursor: pointer;
+            margin: 0 10px;
+            flex-grow: 1;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px; /* 슬라이더 썸 크기 증가 */
+            height: 20px;
+            background: #333;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* 썸에 그림자 추가 */
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #333;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type="range"]:focus {
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:active,
+        input[type="range"]::-moz-range-thumb:active {
+            transform: scale(1.2); /* 클릭 시 썸 확대 효과 */
+        }
+
+        .time-display {
+            font-size: 0.9em; /* 시간 표시 폰트 크기 약간 증가 */
+            color: #555;
+            margin-top: 5px; /* 시간 표시 위치 조정 */
+        }
+
+        .equalizer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .audio-player:hover .equalizer,
+        .audio-player.playing .equalizer {
+            opacity: 1;
+        }
+
+        .bar {
+            display: inline-block;
+            background-color: #333;
+            width: 4px; /* 막대 너비 증가 */
+            height: 12px; /* 막대 높이 증가 */
+            margin-right: 3px; /* 막대 간 간격 증가 */
+            animation: equalizer-animation 0.4s infinite alternate;
+        }
+
+        .bar:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .bar:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes equalizer-animation {
+            from {
+                transform: scaleY(0.4);
+            }
+            to {
+                transform: scaleY(1);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="player">
-        <div class="cover">
-            <img id="albumArt" src="" alt="앨범 커버">
+    <div class="audio-player">
+        <div class="equalizer">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </div>
+        <div class="album-cover-container">
+            <img id="album-image" class="album-cover" src="" alt="앨범 커버">
+        </div>
+        <div class="controls">
+            <button id="play-pause-button">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path id="play-icon" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v14zm10-8l-6 4V7l6 4z"/>
+                    <path id="pause-icon" d="M8 19h3V5H8v14zm5-14v14h3V5h-3z" style="display: none;"/>
+                </svg>
+            </button>
+            <input type="range" id="seek-slider" value="0" min="0">
+            <div class="time-display">
+                <span id="current-time">0:00</span> / <span id="duration">0:00</span>
+            </div>
+            <button id="volume-button">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path id="volume-high" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                    <path id="volume-mute" d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.22 1.82-.63 2.6l-1.66-1.66c.09-.33.15-.66.15-1zM4.27 3L3 4.27 7.73 9H3v6l4 5v-6.38l-2.13-2.13zM9 3L7.71 4.29 12 8.59V7l5 5v6l-6-6.31L9 17.29V3z" style="display: none;"/>
+                </svg>
+            </button>
+            <input type="range" id="volume-slider" value="1" min="0" max="1" step="0.01">
         </div>
         <audio id="audio" src="nya.mp3"></audio>
-        <div class="controls">
-            <button id="playPause">▶️</button>
-            <input type="range" id="progress" value="0">
-        </div>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const audio = document.getElementById("audio");
-            const playPause = document.getElementById("playPause");
-            const progress = document.getElementById("progress");
-            const albumArt = document.getElementById("albumArt");
+        const audio = document.getElementById('audio');
+        const playPauseButton = document.getElementById('play-pause-button');
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+        const seekSlider = document.getElementById('seek-slider');
+        const currentTimeDisplay = document.getElementById('current-time');
+        const durationDisplay = document.getElementById('duration');
+        const volumeButton = document.getElementById('volume-button');
+        const volumeHighIcon = document.getElementById('volume-high');
+        const volumeMuteIcon = document.getElementById('volume-mute');
+        const volumeSlider = document.getElementById('volume-slider');
+        const albumImage = document.getElementById('album-image');
+        const audioPlayer = document.querySelector('.audio-player');
+        const albumCoverContainer = document.querySelector('.album-cover-container');
+        const body = document.body;
 
-            playPause.addEventListener("click", () => {
-                if (audio.paused) {
-                    audio.play();
-                    playPause.textContent = "⏸️";
-                } else {
-                    audio.pause();
-                    playPause.textContent = "▶️";
-                }
-            });
+        let isPlaying = false;
+        let isMuted = false;
+        let currentVolume = 1;
 
-            audio.addEventListener("timeupdate", () => {
-                progress.value = (audio.currentTime / audio.duration) * 100;
-            });
+        // MP3 메타데이터에서 앨범 커버 추출
+        function getAlbumCover() {
+            const reader = new FileReader();
+            fetch('nya.mp3')
+                .then(response => response.blob())
+                .then(blob => {
+                    reader.onload = function() {
+                        const arrayBuffer = this.result;
+                        const id3v2 = arrayBuffer.slice(0, 10);
+                        const dataView = new DataView(id3v2);
+                        const tag = String.fromCharCode(...new Uint8Array(arrayBuffer.slice(0, 3)));
+                        if (tag === 'ID3') {
+                            const version = dataView.getUint8(3);
+                            const revision = dataView.getUint8(4);
+                            const flags = dataView.getUint8(5);
+                            let headerSize = 10;
+                            if (version >= 3) {
+                                headerSize = 10 + ((dataView.getUint8(6) & 0x7F) << 21) + ((dataView.getUint8(7) & 0x7F) << 14) + ((dataView.getUint8(8) & 0x7F) << 7) + (dataView.getUint8(9) & 0x7F);
+                            }
 
-            jsmediatags.read("nya.mp3", {
-                onSuccess: (tag) => {
-                    if (tag.tags.picture) {
-                        let { data, format } = tag.tags.picture;
-                        let base64String = "";
-                        data.forEach(byte => {
-                            base64String += String.fromCharCode(byte);
-                        });
-                        albumArt.src = `data:${format};base64,${btoa(base64String)}`;
-                        document.body.style.background = `linear-gradient(135deg, #${tag.tags.picture.data[0]}, #${tag.tags.picture.data[1]})`;
-                    } else {
-                        albumArt.src = "default_cover.jpg";
-                    }
-                },
-                onError: (error) => console.log(error)
-            });
+                            const id3Data = arrayBuffer.slice(10, headerSize);
+                            let offset = 0;
+                            while (offset < id3Data.byteLength) {
+                                const frameIdBytes = new Uint8Array(id3Data.slice(offset, offset + 4));
+                                const frameId = String.fromCharCode(...frameIdBytes);
+                                const frameSizeBytes = new Uint8Array(id3Data.slice(offset + 4, offset + 8));
+                                const frameSize = (frameSizeBytes[0] << 24) | (frameSizeBytes[1] << 16) | (frameSizeBytes[2] << 8) | frameSizeBytes[3];
+                                const frameFlagsBytes = new Uint8Array(id3Data.slice(offset + 8, offset + 10));
+                                offset += 10;
+
+                                if (frameId === 'APIC') {
+                                    let mimeType = '';
+                                    while (offset < id3Data.byteLength && id3Data[offset] !== 0) {
+                                        mimeType += String.fromCharCode(id3Data[offset++]);
+                                    }
+                                    offset++;
+                                    const pictureType = id3Data[offset++];
+                                    let description = '';
+                                    while (offset < id3Data.byteLength && id3Data[offset] !== 0) {
+                                        description += String.fromCharCode(id3Data[offset++]);
+                                    }
+                                    offset++;
+                                    const imageData = id3Data.slice(offset, offset + frameSize - (offset - (offset - frameSize)));
+                                    const blob = new Blob([imageData], { type: mimeType });
+                                    const imageUrl = URL.createObjectURL(blob);
+                                    albumImage.src = imageUrl;
+                                    updateBackgroundGradient(imageUrl);
+                                    body.style.backgroundImage = `url(${imageUrl})`; /* 배경 이미지 설정 */
+                                    body.style.backgroundSize = 'cover'; /* 배경 이미지 크기 조정 */
+                                    body.style.backgroundPosition = 'center'; /* 배경 이미지 위치 조정 */
+                                    break;
+                                }
+                                offset += frameSize;
+                            }
+                        } else {
+                            albumImage.src = 'default_album.png';
+                            updateBackgroundGradient('default_album.png');
+                            body.style.backgroundImage = 'none'; /* ID3 태그 없을 경우 배경 이미지 제거 */
+                            body.style.backgroundColor = '#f0f0f0';
+                        }
+                    };
+                    reader.readAsArrayBuffer(blob);
+                })
+                .catch(error => {
+                    console.error("앨범 커버를 불러오는 중 오류 발생:", error);
+                    albumImage.src = 'default_album.png';
+                    updateBackgroundGradient('default_album.png');
+                    body.style.backgroundImage = 'none';
+                    body.style.backgroundColor = '#f0f0f0';
+                });
+        }
+
+        // 이미지 URL 기반으로 배경 그라데이션 설정
+        function updateBackgroundGradient(imageUrl) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 1;
+                canvas.height = 1;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, 1, 1);
+                const pixelData = ctx.getImageData(0, 0, 1, 1).data;
+                const backgroundColor = `rgb(${pixelData[0]}, ${pixelData[1]}, ${pixelData[2]})`;
+                document.body.style.background = `linear-gradient(to top, ${backgroundColor} 0%, #f0f0f0 70%)`; /* 그라데이션 범위 조정 */
+            };
+            img.onerror = function() {
+                document.body.style.background = '#f0f0f0';
+            };
+            img.src = imageUrl;
+        }
+
+        // 오디오 로드 시 메타데이터 업데이트
+        audio.addEventListener('loadedmetadata', () => {
+            const durationMinutes = Math.floor(audio.duration / 60);
+            const durationSeconds = Math.floor(audio.duration % 60).toString().padStart(2, '0');
+            durationDisplay.textContent = `${durationMinutes}:${durationSeconds}`;
+            seekSlider.max = Math.floor(audio.duration);
+            getAlbumCover();
         });
+
+        // 재생/일시 정지 버튼 클릭 이벤트
+        playPauseButton.addEventListener('click', () => {
+            if (isPlaying) {
+                audio.pause();
+                playIcon.style.display = 'block';
+                pauseIcon.style.display = 'none';
+                audioPlayer.classList.remove('playing');
+            } else {
+                audio.play();
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'block';
+                audioPlayer.classList.add('playing');
+            }
+            isPlaying = !isPlaying;
+        });
+
+        // Seek 슬라이더 변경 이벤트
+        seekSlider.addEventListener('input', () => {
+            const seekTime = parseInt(seekSlider.value, 10);
+            audio.currentTime = seekTime;
+        });
+
+        // 오디오 시간 업데이트 이벤트
+        audio.addEventListener('timeupdate', () => {
+            const currentMinutes = Math.floor(audio.currentTime / 60);
+            const currentSeconds = Math.floor(audio.currentTime % 60).toString().padStart(2, '0');
+            currentTimeDisplay.textContent = `${currentMinutes}:${currentSeconds}`;
+            seekSlider.value = Math.floor(audio.currentTime);
+        });
+
+        // 볼륨 버튼 클릭 이벤트
+        volumeButton.addEventListener('click', () => {
+            if (isMuted) {
+                audio.muted = false;
+                volumeHighIcon.style.display = 'block';
+                volumeMuteIcon.style.display = 'none';
+                volumeSlider.value = currentVolume;
+            } else {
+                audio.muted = true;
+                volumeHighIcon.style.display = 'none';
+                volumeMuteIcon.style.display = 'block';
+                currentVolume = volumeSlider.value;
+            }
+            isMuted = !isMuted;
+        });
+
+        // 볼륨 슬라이더 변경 이벤트
+        volumeSlider.addEventListener('input', () => {
+            audio.volume = parseFloat(volumeSlider.value);
+            if (audio.volume === 0) {
+                isMuted = true;
+                volumeHighIcon.style.display = 'none';
+                volumeMuteIcon.style.display = 'block';
+            } else {
+                isMuted = false;
+                volumeHighIcon.style.display = 'block';
+                volumeMuteIcon.style.display = 'none';
+            }
+        });
+
+        // 초기화
+        getAlbumCover();
     </script>
 </body>
 </html>
