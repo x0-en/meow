@@ -12,7 +12,6 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #f0f0f0;
             overflow: hidden;
         }
 
@@ -120,10 +119,6 @@
             display: none;
         }
 
-        .time-display {
-            display: none;
-        }
-
         .equalizer {
             position: absolute;
             top: 10px;
@@ -174,7 +169,7 @@
             <div class="bar"></div>
         </div>
         <div class="album-cover-container">
-            <img id="album-image" class="album-cover" src="" alt="Album Cover">
+            <img id="album-image" class="album-cover" src="album_cover.jpg" alt="Album Cover">
         </div>
         <div class="controls">
             <button id="play-pause-button">
@@ -198,95 +193,43 @@
 
         let isPlaying = false;
 
-        function getAlbumCover() {
-            const reader = new FileReader();
-            fetch('nya.mp3')
-                .then(response => response.blob())
-                .then(blob => {
-                    reader.onload = function() {
-                        const arrayBuffer = this.result;
-                        const id3v2 = arrayBuffer.slice(0, 10);
-                        const dataView = new DataView(id3v2);
-                        const tag = String.fromCharCode(...new Uint8Array(arrayBuffer.slice(0, 3)));
-                        if (tag === 'ID3') {
-                            const version = dataView.getUint8(3);
-                            const revision = dataView.getUint8(4);
-                            const flags = dataView.getUint8(5);
-                            let headerSize = 10;
-                            if (version >= 3) {
-                                headerSize = 10 + ((dataView.getUint8(6) & 0x7F) << 21) + ((dataView.getUint8(7) & 0x7F) << 14) + ((dataView.getUint8(8) & 0x7F) << 7) + (dataView.getUint8(9) & 0x7F);
-                            }
-                            const id3Data = arrayBuffer.slice(10, headerSize);
-                            let offset = 0;
-                            while (offset < id3Data.byteLength) {
-                                const frameIdBytes = new Uint8Array(id3Data.slice(offset, offset + 4));
-                                const frameId = String.fromCharCode(...frameIdBytes);
-                                const frameSizeBytes = new Uint8Array(id3Data.slice(offset + 4, offset + 8));
-                                const frameSize = (frameSizeBytes[0] << 24) | (frameSizeBytes[1] << 16) | (frameSizeBytes[2] << 8) | frameSizeBytes[3];
-                                const frameFlagsBytes = new Uint8Array(id3Data.slice(offset + 8, offset + 10));
-                                offset += 10;
-                                if (frameId === 'APIC') {
-                                    let mimeType = '';
-                                    while (offset < id3Data.byteLength && id3Data[offset] !== 0) {
-                                        mimeType += String.fromCharCode(id3Data[offset++]);
-                                    }
-                                    offset++;
-                                    const pictureType = id3Data[offset++];
-                                    let description = '';
-                                    while (offset < id3Data.byteLength && id3Data[offset] !== 0) {
-                                        description += String.fromCharCode(id3Data[offset++]);
-                                    }
-                                    offset++;
-                                    const imageData = id3Data.slice(offset, offset + frameSize - (offset - (offset - frameSize)));
-                                    const blob = new Blob([imageData], { type: mimeType });
-                                    const imageUrl = URL.createObjectURL(blob);
-                                    albumImage.src = imageUrl;
-                                    updateBackgroundGradient(imageUrl);
-                                    body.style.backgroundImage = `url(${imageUrl})`;
-                                    body.style.backgroundSize = 'cover';
-                                    body.style.backgroundPosition = 'center';
-                                    break;
-                                }
-                                offset += frameSize;
-                            }
-                        } else {
-                            albumImage.src = 'default_album.png';
-                            updateBackgroundGradient('default_album.png');
-                            body.style.backgroundImage = 'none';
-                            body.style.backgroundColor = '#f0f0f0';
-                        }
-                    };
-                    reader.readAsArrayBuffer(blob);
-                })
-                .catch(error => {
-                    console.error("Error loading album cover:", error);
-                    albumImage.src = 'default_album.png';
-                    updateBackgroundGradient('default_album.png');
-                    body.style.backgroundImage = 'none';
-                    body.style.backgroundColor = '#f0f0f0';
-                });
+        function updateBackgroundGradient(imageElement) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = imageElement.width;
+            canvas.height = imageElement.height;
+            context.drawImage(imageElement, 0, 0, imageElement.width, imageElement.height);
+
+            const imageData = context.getImageData(0, 0, imageElement.width, imageElement.height).data;
+            const averageColor = getAverageColor(imageData, imageElement.width, imageElement.height);
+
+            document.body.style.background = `linear-gradient(to top, ${averageColor} 0%, #f0f0f0 70%)`;
         }
 
-        function updateBackgroundGradient(imageUrl) {
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                canvas.width = 1;
-                canvas.height = 1;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, 1, 1);
-                const pixelData = ctx.getImageData(0, 0, 1, 1).data;
-                const backgroundColor = `rgb(${pixelData[0]}, ${pixelData[1]}, ${pixelData[2]})`;
-                document.body.style.background = `linear-gradient(to top, ${backgroundColor} 0%, #f0f0f0 70%)`;
-            };
-            img.onerror = function() {
-                document.body.style.background = '#f0f0f0';
-            };
-            img.src = imageUrl;
+        function getAverageColor(data, width, height) {
+            let r = 0, g = 0, b = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                r += data[i];
+                g += data[i + 1];
+                b += data[i + 2];
+            }
+            const count = width * height;
+            return `rgb(${Math.round(r / count)}, ${Math.round(g / count)}, ${Math.round(b / count)})`;
         }
+
+        albumImage.onload = () => {
+            updateBackgroundGradient(albumImage);
+        };
+
+        albumImage.onerror = () => {
+            console.error("Failed to load album cover image");
+            document.body.style.backgroundColor = '#f0f0f0';
+        };
 
         audio.addEventListener('loadedmetadata', () => {
-            getAlbumCover();
+             if (albumImage.src !== "album_cover.jpg") {
+                albumImage.src = "album_cover.jpg";
+             }
         });
 
         playPauseButton.addEventListener('click', () => {
@@ -306,7 +249,6 @@
             isPlaying = !isPlaying;
         });
 
-        getAlbumCover();
         audio.volume = 0.2;
     </script>
 </body>
