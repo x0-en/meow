@@ -11,16 +11,14 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(to bottom right, #FF6F61, #D17D7B);
+            background: #000;
             font-family: 'Arial', sans-serif;
-            color: white;
         }
 
         .player-container {
-            width: 320px;
-            height: 320px;
-            border-radius: 10px;
-            background-image: url('nya.mp3');
+            width: 400px;
+            height: 400px;
+            border-radius: 15px;
             background-size: cover;
             background-position: center;
             position: relative;
@@ -28,7 +26,7 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
             transition: transform 0.3s ease;
         }
 
@@ -38,17 +36,17 @@
 
         .play-button {
             position: absolute;
-            bottom: 20px;
-            background: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.8);
             border: none;
-            padding: 15px;
+            padding: 20px 30px;
             border-radius: 50%;
             cursor: pointer;
+            font-size: 24px;
             transition: all 0.3s ease;
         }
 
         .play-button:hover {
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 1);
             transform: scale(1.1);
         }
 
@@ -59,9 +57,9 @@
 </head>
 <body>
 
-    <div class="player-container">
+    <div class="player-container" id="playerContainer">
         <button class="play-button" id="playButton">
-            ▶
+            ▶️
         </button>
         <audio class="audio-player" id="audioPlayer" controls>
             <source src="nya.mp3" type="audio/mp3">
@@ -72,16 +70,48 @@
     <script>
         const playButton = document.getElementById('playButton');
         const audioPlayer = document.getElementById('audioPlayer');
+        const playerContainer = document.getElementById('playerContainer');
         
+        const audio = new Audio('nya.mp3');
+        
+        const fetchAlbumCover = () => {
+            const reader = new FileReader();
+            const file = new Blob([audio], { type: 'audio/mp3' });
+
+            reader.onload = function() {
+                const data = new Uint8Array(reader.result);
+                const coverArt = extractCoverArt(data);
+                if (coverArt) {
+                    playerContainer.style.backgroundImage = `url(${coverArt})`;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        const extractCoverArt = (data) => {
+            const id3Header = 'ID3';
+            for (let i = 0; i < data.length; i++) {
+                if (String.fromCharCode(data[i], data[i+1], data[i+2]) === id3Header) {
+                    const coverArtData = data.slice(i + 10, i + 200); // Cover art data 추출
+                    const blob = new Blob([coverArtData], { type: 'image/jpeg' });
+                    const url = URL.createObjectURL(blob);
+                    return url;
+                }
+            }
+            return null;
+        };
+
         playButton.addEventListener('click', () => {
             if (audioPlayer.paused) {
                 audioPlayer.play();
-                playButton.innerHTML = '■';
+                playButton.innerHTML = '⏸️';
             } else {
                 audioPlayer.pause();
-                playButton.innerHTML = '▶';
+                playButton.innerHTML = '▶️';
             }
         });
+
+        fetchAlbumCover();
     </script>
 
 </body>
