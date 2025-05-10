@@ -3,116 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>meow</title>
+    <title>a</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <style>
         body {
-            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #000;
-            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #ff758c, #ff7eb3);
+            transition: background 1s ease-in-out;
         }
-
-        .player-container {
-            width: 400px;
-            height: 400px;
+        .player {
+            width: 350px;
+            padding: 20px;
             border-radius: 15px;
-            background-size: cover;
-            background-position: center;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
-            transition: transform 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.9);
+            text-align: center;
+            transition: transform 0.3s;
         }
-
-        .player-container:hover {
+        .player:hover {
             transform: scale(1.05);
         }
-
-        .play-button {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.8);
-            border: none;
-            padding: 20px 30px;
-            border-radius: 50%;
+        .cover img {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+        button {
+            font-size: 20px;
             cursor: pointer;
-            font-size: 24px;
-            transition: all 0.3s ease;
+            padding: 10px;
+            border: none;
+            background: #ff758c;
+            color: white;
+            border-radius: 10px;
+            transition: background 0.3s;
         }
-
-        .play-button:hover {
-            background: rgba(255, 255, 255, 1);
-            transform: scale(1.1);
+        button:hover {
+            background: #ff7eb3;
         }
-
-        .audio-player {
-            display: none;
+        input[type="range"] {
+            flex-grow: 1;
+            margin: 0 10px;
         }
     </style>
 </head>
 <body>
-
-    <div class="player-container" id="playerContainer">
-        <button class="play-button" id="playButton">
-            ▶️
-        </button>
-        <audio class="audio-player" id="audioPlayer" controls>
-            <source src="nya.mp3" type="audio/mp3">
-            Your browser does not support the audio element.
-        </audio>
+    <div class="player">
+        <div class="cover">
+            <img id="albumArt" src="" alt="앨범 커버">
+        </div>
+        <audio id="audio" src="nya.mp3"></audio>
+        <div class="controls">
+            <button id="playPause">▶️</button>
+            <input type="range" id="progress" value="0">
+        </div>
     </div>
 
     <script>
-        const playButton = document.getElementById('playButton');
-        const audioPlayer = document.getElementById('audioPlayer');
-        const playerContainer = document.getElementById('playerContainer');
-        
-        const audio = new Audio('nya.mp3');
-        
-        const fetchAlbumCover = () => {
-            const reader = new FileReader();
-            const file = new Blob([audio], { type: 'audio/mp3' });
+        document.addEventListener("DOMContentLoaded", () => {
+            const audio = document.getElementById("audio");
+            const playPause = document.getElementById("playPause");
+            const progress = document.getElementById("progress");
+            const albumArt = document.getElementById("albumArt");
 
-            reader.onload = function() {
-                const data = new Uint8Array(reader.result);
-                const coverArt = extractCoverArt(data);
-                if (coverArt) {
-                    playerContainer.style.backgroundImage = `url(${coverArt})`;
+            playPause.addEventListener("click", () => {
+                if (audio.paused) {
+                    audio.play();
+                    playPause.textContent = "⏸️";
+                } else {
+                    audio.pause();
+                    playPause.textContent = "▶️";
                 }
-            };
-            reader.readAsArrayBuffer(file);
-        };
+            });
 
-        const extractCoverArt = (data) => {
-            const id3Header = 'ID3';
-            for (let i = 0; i < data.length; i++) {
-                if (String.fromCharCode(data[i], data[i+1], data[i+2]) === id3Header) {
-                    const coverArtData = data.slice(i + 10, i + 200); // Cover art data 추출
-                    const blob = new Blob([coverArtData], { type: 'image/jpeg' });
-                    const url = URL.createObjectURL(blob);
-                    return url;
-                }
-            }
-            return null;
-        };
+            audio.addEventListener("timeupdate", () => {
+                progress.value = (audio.currentTime / audio.duration) * 100;
+            });
 
-        playButton.addEventListener('click', () => {
-            if (audioPlayer.paused) {
-                audioPlayer.play();
-                playButton.innerHTML = '⏸️';
-            } else {
-                audioPlayer.pause();
-                playButton.innerHTML = '▶️';
-            }
+            jsmediatags.read("nya.mp3", {
+                onSuccess: (tag) => {
+                    if (tag.tags.picture) {
+                        let { data, format } = tag.tags.picture;
+                        let base64String = "";
+                        data.forEach(byte => {
+                            base64String += String.fromCharCode(byte);
+                        });
+                        albumArt.src = `data:${format};base64,${btoa(base64String)}`;
+                        document.body.style.background = `linear-gradient(135deg, #${tag.tags.picture.data[0]}, #${tag.tags.picture.data[1]})`;
+                    } else {
+                        albumArt.src = "default_cover.jpg";
+                    }
+                },
+                onError: (error) => console.log(error)
+            });
         });
-
-        fetchAlbumCover();
     </script>
-
 </body>
 </html>
